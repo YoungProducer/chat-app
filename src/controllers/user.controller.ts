@@ -18,24 +18,25 @@ import {
   del,
   requestBody,
 } from "@loopback/rest";
-import {hash, compare, genSalt} from "bcryptjs";
-import {promisify} from "util";
-import {User} from "../models";
-import {UserRepository} from "../repositories";
-import {runInNewContext} from "vm";
+import { hash, compare, genSalt } from "bcryptjs";
+import { promisify } from "util";
+import { User } from "../models";
+import { UserRepository } from "../repositories";
+import { runInNewContext } from "vm";
 
 export class UserController {
+  filterBuilder = new FilterBuilder();
   hashAsync = promisify(hash);
   constructor(
     @repository(UserRepository)
     public userRepository: UserRepository,
-  ) {}
+  ) { }
 
   @post("/signup", {
     responses: {
       "200": {
         description: "User model instance",
-        content: {"application/json": {schema: getModelSchemaRef(User)}},
+        content: { "application/json": { schema: getModelSchemaRef(User) } },
       },
     },
   })
@@ -43,31 +44,44 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, {exclude: ["id"]}),
+          schema: getModelSchemaRef(User, { exclude: ["id"] }),
         },
       },
     })
     user: Omit<User, "id">,
-  ): Promise<User | string> {
+  ): Promise<string | Error> {
+    let res: string | Error = "";
+    const filter = this.filterBuilder
+      .fields("id", "email", "password")
+      .limit(10)
+      .offset(0)
+      .order(["id ASC"])
+      .where({ email: user.email })
+      .build();
     let decodedUser: Omit<User, "id"> = user;
     decodedUser.password = await this.hashAsync(user.password, 10);
 
-    genSalt(10, function(err, salt) {
-      if (err) return err;
-      hash(user.password, salt, function(err, hash) {
-        if (err) return err;
-        decodedUser.password = hash;
+    if (await this.userRepository.findOne(filter) === null) {
+      genSalt(10, function (err, salt) {
+        if (err) res = err;
+        hash(user.password, salt, function (err, hash) {
+          if (err) res = err;
+          decodedUser.password = hash;
+        });
       });
-    });
 
-    return this.userRepository.create(decodedUser);
+      this.userRepository.create(decodedUser);
+      res = "SUCCESS";
+    } else res = "EMAIL_ALREADY_EXIST";
+
+    return res;
   }
 
   @get("/users/count", {
     responses: {
       "200": {
         description: "User model count",
-        content: {"application/json": {schema: CountSchema}},
+        content: { "application/json": { schema: CountSchema } },
       },
     },
   })
@@ -83,7 +97,7 @@ export class UserController {
         description: "Array of User model instances",
         content: {
           "application/json": {
-            schema: getModelSchemaRef(User),
+            type: "string",
           },
         },
       },
@@ -93,24 +107,28 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, {exclude: ["id"]}),
+          schema: getModelSchemaRef(User, { exclude: ["id"] }),
         },
       },
     })
     user: Omit<User, "id">,
   ): Promise<string> {
-    const filterBuilder = new FilterBuilder();
-    const filter = filterBuilder
+    const filter = this.filterBuilder
       .fields("id", "email", "password")
       .limit(10)
       .offset(0)
       .order(["id ASC"])
-      .where({email: user.email})
+      .where({ email: user.email })
       .build();
 
-    const foundUser: User[] = await this.userRepository.find(filter);
+    let result: string = "ERROR";
 
-    let result: string = "";
+    const found: User | null = await this.userRepository.findOne(filter);
+    if (found !== null) {
+      if (await compare(user.password, found.password)) {
+        result = "SUCCESS";
+      } else result = "ERROR_INCORRECT_PASSWORD";
+    } else result = "ERROR_USER_NOT_FOUND";
 
     return result;
   }
@@ -121,20 +139,19 @@ export class UserController {
         description: "Array of User model instances",
         content: {
           "application/json": {
-            schema: {type: "array", items: getModelSchemaRef(User)},
+            schema: { type: "array", items: getModelSchemaRef(User) },
           },
         },
       },
     },
   })
   async find(@param.path.string("email") email: string): Promise<User[]> {
-    const filterBuilder = new FilterBuilder();
-    const filterForUsers = filterBuilder
+    const filterForUsers = this.filterBuilder
       .fields("id", "email", "password")
       .limit(10)
       .offset(0)
       .order(["id ASC"])
-      .where({email: email})
+      .where({ email: email })
       .build();
 
     return this.userRepository.find(filterForUsers);
@@ -144,7 +161,7 @@ export class UserController {
     responses: {
       "200": {
         description: "User PATCH success count",
-        content: {"application/json": {schema: CountSchema}},
+        content: { "application/json": { schema: CountSchema } },
       },
     },
   })
@@ -152,7 +169,7 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, {partial: true}),
+          schema: getModelSchemaRef(User, { partial: true }),
         },
       },
     })
@@ -166,7 +183,7 @@ export class UserController {
     responses: {
       "200": {
         description: "User model instance",
-        content: {"application/json": {schema: getModelSchemaRef(User)}},
+        content: { "application/json": { schema: getModelSchemaRef(User) } },
       },
     },
   })
@@ -186,7 +203,7 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, {partial: true}),
+          schema: getModelSchemaRef(User, { partial: true }),
         },
       },
     })
