@@ -18,7 +18,6 @@ import {
   put,
   del,
   requestBody,
-  getJsonSchema,
 } from "@loopback/rest";
 import {hash, compare, genSalt} from "bcryptjs";
 import {promisify} from "util";
@@ -100,8 +99,6 @@ export class UserController {
       .order(["id ASC"])
       .where({email: user.email})
       .build();
-
-    let result: string = "ERROR";
 
     const found: User | null = await this.userRepository.findOne(filter);
     if (found !== null) {
