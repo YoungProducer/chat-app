@@ -7,6 +7,7 @@ import {
   FilterBuilder,
 } from "@loopback/repository";
 import {
+  api,
   post,
   param,
   get,
@@ -17,71 +18,99 @@ import {
   put,
   del,
   requestBody,
+  getJsonSchema,
 } from "@loopback/rest";
-import { hash, compare, genSalt } from "bcryptjs";
-import { promisify } from "util";
-import { User } from "../models";
-import { UserRepository } from "../repositories";
-import { runInNewContext } from "vm";
+import {hash, compare, genSalt} from "bcryptjs";
+import {promisify} from "util";
+import {def} from "./user.controller.api";
+import {User} from "../models";
+import {UserRepository} from "../repositories";
+import {E_ActionResponse, I_RequestResponse} from "../middleware";
 
+@api(def)
 export class UserController {
   filterBuilder = new FilterBuilder();
   hashAsync = promisify(hash);
+
   constructor(
     @repository(UserRepository)
     public userRepository: UserRepository,
-  ) { }
+  ) {}
 
-  @post("/signup", {
-    responses: {
-      "200": {
-        description: "User model instance",
-        content: { "application/json": { schema: getModelSchemaRef(User) } },
-      },
-    },
-  })
-  async create(
-    @requestBody({
-      content: {
-        "application/json": {
-          schema: getModelSchemaRef(User, { exclude: ["id"] }),
-        },
-      },
-    })
+  // @post("/signup", {
+  //   responses: {
+  //     "200": {
+  //       description: "User model instance",
+  //       content: {
+  //         "application/json": {
+  //           schema: {
+  //             $ref: "#/components/schemas/SignUpResponse",
+  //             definitions: {
+  //               SignUpResponse: {
+  //                 title: "SignUpResponse",
+  //                 properties: {
+  //                   actionResponse: {type: "string"},
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   },
+  // })
+  async signUp(
+    // @requestBody({
+    //   content: {
+    //     "application/json": {
+    //       schema: getModelSchemaRef(User, {exclude: ["id"]}),
+    //     },
+    //   },
+    // })
     user: Omit<User, "id">,
-  ): Promise<string | Error> {
-    let res: string | Error = "";
+  ): Promise<I_RequestResponse> {
+    let requestResponse: I_RequestResponse = {
+      actionResponse: E_ActionResponse.DEFAULT,
+    };
     const filter = this.filterBuilder
       .fields("id", "email", "password")
       .limit(10)
       .offset(0)
       .order(["id ASC"])
-      .where({ email: user.email })
+      .where({email: user.email})
       .build();
     let decodedUser: Omit<User, "id"> = user;
     decodedUser.password = await this.hashAsync(user.password, 10);
 
-    if (await this.userRepository.findOne(filter) === null) {
-      genSalt(10, function (err, salt) {
-        if (err) res = err;
-        hash(user.password, salt, function (err, hash) {
-          if (err) res = err;
+    if ((await this.userRepository.findOne(filter)) === null) {
+      genSalt(10, function(err, salt) {
+        if (err) {
+          requestResponse.actionResponse = E_ActionResponse.ERROR;
+        }
+
+        hash(user.password, salt, function(err, hash) {
+          if (err) {
+            requestResponse.actionResponse = E_ActionResponse.ERROR;
+          }
+
           decodedUser.password = hash;
         });
       });
 
       this.userRepository.create(decodedUser);
-      res = "SUCCESS";
-    } else res = "EMAIL_ALREADY_EXIST";
+      requestResponse.actionResponse = E_ActionResponse.SUCCESS;
+    } else {
+      requestResponse.actionResponse = E_ActionResponse.EMAIL_ALREADY_EXIST;
+    }
 
-    return res;
+    return requestResponse;
   }
 
   @get("/users/count", {
     responses: {
       "200": {
         description: "User model count",
-        content: { "application/json": { schema: CountSchema } },
+        content: {"application/json": {schema: CountSchema}},
       },
     },
   })
@@ -91,34 +120,37 @@ export class UserController {
     return this.userRepository.count(where);
   }
 
-  @post("/signin", {
-    responses: {
-      "200": {
-        description: "Array of User model instances",
-        content: {
-          "application/json": {
-            type: "string",
-          },
-        },
-      },
-    },
-  })
+  // @post("/signin", {
+  //   responses: {
+  //     "200": {
+  //       description: "Array of User model instances",
+  //       content: {
+  //         "application/json": {
+  //           type: "string",
+  //         },
+  //       },
+  //     },
+  //   },
+  // })
   async signIn(
-    @requestBody({
-      content: {
-        "application/json": {
-          schema: getModelSchemaRef(User, { exclude: ["id"] }),
-        },
-      },
-    })
+    // @requestBody({
+    //   content: {
+    //     "application/json": {
+    //       schema: getModelSchemaRef(User, {exclude: ["id"]}),
+    //     },
+    //   },
+    // })
     user: Omit<User, "id">,
-  ): Promise<string> {
+  ): Promise<I_RequestResponse> {
+    let requestResponse: I_RequestResponse = {
+      actionResponse: E_ActionResponse.DEFAULT,
+    };
     const filter = this.filterBuilder
       .fields("id", "email", "password")
       .limit(10)
       .offset(0)
       .order(["id ASC"])
-      .where({ email: user.email })
+      .where({email: user.email})
       .build();
 
     let result: string = "ERROR";
@@ -126,11 +158,11 @@ export class UserController {
     const found: User | null = await this.userRepository.findOne(filter);
     if (found !== null) {
       if (await compare(user.password, found.password)) {
-        result = "SUCCESS";
-      } else result = "ERROR_INCORRECT_PASSWORD";
-    } else result = "ERROR_USER_NOT_FOUND";
+        requestResponse.actionResponse = E_ActionResponse.SUCCESS;
+      } else requestResponse.actionResponse = E_ActionResponse.INVALID_PASSWORD;
+    } else requestResponse.actionResponse = E_ActionResponse.USER_NOT_FOUND;
 
-    return result;
+    return requestResponse;
   }
 
   @get("/users", {
@@ -139,7 +171,7 @@ export class UserController {
         description: "Array of User model instances",
         content: {
           "application/json": {
-            schema: { type: "array", items: getModelSchemaRef(User) },
+            schema: {type: "array", items: getModelSchemaRef(User)},
           },
         },
       },
@@ -151,7 +183,7 @@ export class UserController {
       .limit(10)
       .offset(0)
       .order(["id ASC"])
-      .where({ email: email })
+      .where({email: email})
       .build();
 
     return this.userRepository.find(filterForUsers);
@@ -161,7 +193,7 @@ export class UserController {
     responses: {
       "200": {
         description: "User PATCH success count",
-        content: { "application/json": { schema: CountSchema } },
+        content: {"application/json": {schema: CountSchema}},
       },
     },
   })
@@ -169,7 +201,7 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, { partial: true }),
+          schema: getModelSchemaRef(User, {partial: true}),
         },
       },
     })
@@ -183,7 +215,7 @@ export class UserController {
     responses: {
       "200": {
         description: "User model instance",
-        content: { "application/json": { schema: getModelSchemaRef(User) } },
+        content: {"application/json": {schema: getModelSchemaRef(User)}},
       },
     },
   })
@@ -203,7 +235,7 @@ export class UserController {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef(User, { partial: true }),
+          schema: getModelSchemaRef(User, {partial: true}),
         },
       },
     })
