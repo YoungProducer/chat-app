@@ -37,38 +37,7 @@ export class UserController {
     public userRepository: UserRepository,
   ) {}
 
-  // @post("/signup", {
-  //   responses: {
-  //     "200": {
-  //       description: "User model instance",
-  //       content: {
-  //         "application/json": {
-  //           schema: {
-  //             $ref: "#/components/schemas/SignUpResponse",
-  //             definitions: {
-  //               SignUpResponse: {
-  //                 title: "SignUpResponse",
-  //                 properties: {
-  //                   actionResponse: {type: "string"},
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     },
-  //   },
-  // })
-  async signUp(
-    // @requestBody({
-    //   content: {
-    //     "application/json": {
-    //       schema: getModelSchemaRef(User, {exclude: ["id"]}),
-    //     },
-    //   },
-    // })
-    user: Omit<User, "id">,
-  ): Promise<I_RequestResponse> {
+  async signUp(user: Omit<User, "id">): Promise<I_RequestResponse> {
     let requestResponse: I_RequestResponse = {
       actionResponse: E_ActionResponse.DEFAULT,
     };
@@ -120,28 +89,7 @@ export class UserController {
     return this.userRepository.count(where);
   }
 
-  // @post("/signin", {
-  //   responses: {
-  //     "200": {
-  //       description: "Array of User model instances",
-  //       content: {
-  //         "application/json": {
-  //           type: "string",
-  //         },
-  //       },
-  //     },
-  //   },
-  // })
-  async signIn(
-    // @requestBody({
-    //   content: {
-    //     "application/json": {
-    //       schema: getModelSchemaRef(User, {exclude: ["id"]}),
-    //     },
-    //   },
-    // })
-    user: Omit<User, "id">,
-  ): Promise<I_RequestResponse> {
+  async signIn(user: Omit<User, "id">): Promise<I_RequestResponse> {
     let requestResponse: I_RequestResponse = {
       actionResponse: E_ActionResponse.DEFAULT,
     };
