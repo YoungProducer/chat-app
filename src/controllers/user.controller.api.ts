@@ -1,7 +1,7 @@
-import {OpenApiSpec, Trie} from "@loopback/rest";
-import {getModelSchemaRef} from "@loopback/rest";
-import {userDefinition} from "../models";
-import {User} from "../models";
+import { OpenApiSpec, Trie } from "@loopback/rest";
+import { getModelSchemaRef } from "@loopback/rest";
+import { userDefinition } from "../models";
+import { User } from "../models";
 
 export const def: OpenApiSpec = {
   openapi: "3.0.0",
@@ -41,7 +41,7 @@ export const def: OpenApiSpec = {
                 schema: {
                   type: "object",
                   properties: {
-                    actionResponse: {type: "string"},
+                    actionResponse: { type: "number" },
                   },
                 },
               },
@@ -100,7 +100,7 @@ export const def: OpenApiSpec = {
                 schema: {
                   type: "object",
                   properties: {
-                    actionResponse: {type: "string"},
+                    actionResponse: { type: "number" },
                   },
                 },
               },
