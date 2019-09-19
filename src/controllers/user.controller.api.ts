@@ -1,7 +1,5 @@
-import { OpenApiSpec, Trie } from "@loopback/rest";
-import { getModelSchemaRef } from "@loopback/rest";
-import { userDefinition } from "../models";
-import { User } from "../models";
+import {OpenApiSpec, Trie} from "@loopback/rest";
+import {userDefinition} from "../models";
 
 export const def: OpenApiSpec = {
   openapi: "3.0.0",
@@ -41,7 +39,7 @@ export const def: OpenApiSpec = {
                 schema: {
                   type: "object",
                   properties: {
-                    actionResponse: { type: "number" },
+                    actionResponse: {type: "number"},
                   },
                 },
               },
@@ -83,9 +81,12 @@ export const def: OpenApiSpec = {
                 properties: {
                   email: {
                     type: "string",
+                    format: "email",
                   },
                   password: {
                     type: "string",
+                    pattern:
+                      "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{5,512})",
                   },
                 },
               },
@@ -100,7 +101,7 @@ export const def: OpenApiSpec = {
                 schema: {
                   type: "object",
                   properties: {
-                    actionResponse: { type: "number" },
+                    actionResponse: {type: "number"},
                   },
                 },
               },
@@ -115,6 +116,7 @@ export const def: OpenApiSpec = {
             required: true,
             schema: {
               type: "string",
+              format: "email",
             },
           },
           {
@@ -124,6 +126,8 @@ export const def: OpenApiSpec = {
             required: true,
             schema: {
               type: "string",
+              pattern:
+                "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{5,512})",
             },
           },
         ],
@@ -133,7 +137,7 @@ export const def: OpenApiSpec = {
   components: {
     schemas: {
       User: {
-        $ref: "#/components/schemas/User",
+        schema: userDefinition,
       },
     },
   },

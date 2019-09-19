@@ -1,4 +1,4 @@
-import {inject} from '@loopback/context';
+import {inject} from "@loopback/context";
 import {
   FindRoute,
   InvokeMethod,
@@ -8,7 +8,7 @@ import {
   RestBindings,
   Send,
   SequenceHandler,
-} from '@loopback/rest';
+} from "@loopback/rest";
 
 const SequenceActions = RestBindings.SequenceActions;
 
@@ -24,6 +24,7 @@ export class MySequence implements SequenceHandler {
   async handle(context: RequestContext) {
     try {
       const {request, response} = context;
+
       const route = this.findRoute(request);
       const args = await this.parseParams(request, route);
       const result = await this.invoke(route, args);

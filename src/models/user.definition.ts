@@ -1,8 +1,7 @@
 import {SchemaObject} from "@loopback/rest";
 
 export const userDefinition: SchemaObject = {
-  name: "user",
-  base: "User",
+  name: "User",
   idInjection: true,
   properties: {
     id: {
