@@ -1,4 +1,4 @@
-import {SchemaObject} from "@loopback/rest";
+import { SchemaObject } from "@loopback/rest";
 
 export const userDefinition: SchemaObject = {
   name: "User",
@@ -17,5 +17,13 @@ export const userDefinition: SchemaObject = {
       type: "string",
       required: ["true"],
     },
+    firstName: {
+      type: "string",
+      required: ["true"]
+    },
+    lastName: {
+      type: "string",
+      required: ["true"]
+    }
   },
 };
